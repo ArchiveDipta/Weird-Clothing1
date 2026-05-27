@@ -19,12 +19,13 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.setGlobalPrefix('api');
 
-  // Serve static files (uploaded images)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
   });
 
-  await app.listen(3000);
-  console.log('🚀 Server running on http://localhost:3000/api');
+  // Pakai PORT dari Railway, bind ke 0.0.0.0 bukan localhost
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Server running on port ${port}`);
 }
 bootstrap();
