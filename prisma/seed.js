@@ -4,6 +4,16 @@ const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
+  // Cek apakah sudah pernah di-seed
+  const existing = await prisma.user.findFirst({
+    where: { email: 'super@admin.com' }
+  });
+
+  if (existing) {
+    console.log('✅ Data already seeded, skipping...');
+    return;
+  }
+
   const hashedPassword = await bcrypt.hash('superadmin123', 10);
   
   await prisma.user.upsert({
@@ -68,7 +78,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Seed completed successfully');
+  console.log('✅ Seed completed');
 }
 
 main()
