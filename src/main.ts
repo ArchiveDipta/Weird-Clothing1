@@ -10,7 +10,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: '*', // Atau spesifik: ['http://localhost:3000', 'https://your-frontend.vercel.app']
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -26,12 +26,14 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.setGlobalPrefix('api');
 
-  // Serve static files (uploaded images)
+  // Serve static files
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
   });
 
-  await app.listen(process.env.PORT || 3000);
-  console.log('🚀 Server running on http://localhost:3000/api');
+  // PENTING: Gunakan PORT dari environment variable
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`🚀 Server running on port ${port}`);
 }
 bootstrap();
