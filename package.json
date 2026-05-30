@@ -1,13 +1,8 @@
 {
   "name": "weird-fashion",
   "version": "1.0.0",
-  "description": "Fashion E-Commerce API with NestJS",
-  "author": "",
-  "private": true,
-  "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "postinstall": "prisma generate",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
