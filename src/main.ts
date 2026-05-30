@@ -8,7 +8,7 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Enable CORS
+  // CORS untuk frontend
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -32,14 +32,12 @@ async function bootstrap() {
     prefix: '/uploads',
   });
 
-  // Gunakan PORT dari Railway (8080)
-  const port = process.env.PORT;
-  if (!port) {
-    console.error('PORT environment variable is required');
-    process.exit(1);
-  }
+  // Railway kasih PORT via environment variable
+  const port = process.env.PORT || 8080;
   
+  // PENTING: bind ke 0.0.0.0 supaya Railway bisa akses
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server running on port ${port}`);
+  
+  console.log(`🚀 Server running on http://0.0.0.0:${port}/api`);
 }
 bootstrap();
