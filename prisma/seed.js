@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Cek apakah sudah pernah di-seed
   const existing = await prisma.user.findFirst({
     where: { email: 'super@admin.com' }
   });
