@@ -8,11 +8,19 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Enable CORS
+  // Enable CORS - konfigurasi lengkap
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:8080',
+      'https://weird-clothing1-production.up.railway.app',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   app.useGlobalPipes(
@@ -31,7 +39,6 @@ async function bootstrap() {
     prefix: '/uploads',
   });
 
-  // PENTING: Gunakan PORT dari environment variable
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 Server running on port ${port}`);
