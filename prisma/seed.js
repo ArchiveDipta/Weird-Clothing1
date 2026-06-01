@@ -4,69 +4,67 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Cek apakah sudah pernah di-seed
-  const existing = await prisma.user.findFirst({
-    where: { email: 'super@admin.com' }
+  console.log('🌱 Starting database seeding...');
+
+  // 1. Create ADMIN user safely
+  const existingAdmin = await prisma.user.findFirst({
+    where: { email: 'admin@store.com' }
   });
   
-  if (existing) {
-    console.log('✅ Data already seeded, skipping...');
-    return;
-  }
-
-  const hashedSuper = await bcrypt.hash('superadmin123', 10);
-  const hashedAdmin = await bcrypt.hash('admin123', 10);
-
-  await prisma.user.createMany({
-    data: [
-      { 
-        email: 'super@admin.com', 
-        password: hashedSuper, 
-        fullName: 'Super Administrator', 
-        role: Role.SUPER_ADMIN 
-      },
-      { 
+  if (!existingAdmin) {
+    const hashedAdmin = await bcrypt.hash('admin123', 10);
+    await prisma.user.create({
+      data: { 
         email: 'admin@store.com', 
         password: hashedAdmin, 
         fullName: 'Store Admin', 
         role: Role.ADMIN 
       }
-    ]
+    });
+    console.log('👤 Seeded Store Admin user');
+  } else {
+    console.log('👤 Store Admin user already exists, skipping...');
+  }
+
+  // 2. Create Category safely
+  let category = await prisma.category.findUnique({
+    where: { name: 'T-Shirt' }
   });
 
-  await prisma.warehouse.create({ 
-    data: { name: 'Main Warehouse', location: 'Jakarta' } 
+  if (!category) {
+    category = await prisma.category.create({
+      data: { name: 'T-Shirt' }
+    });
+    console.log('📦 Seeded Category: T-Shirt');
+  } else {
+    console.log('📦 Category T-Shirt already exists, skipping...');
+  }
+
+  // 3. Create Product with direct Variant stocks safely
+  const existingProduct = await prisma.product.findFirst({
+    where: { name: 'Basic Cotton T-Shirt', categoryId: category.id }
   });
 
-  await prisma.category.create({ 
-    data: { name: 'T-Shirt' } 
-  });
-
-  const product = await prisma.product.create({
-    data: {
-      name: 'Basic Cotton T-Shirt',
-      description: 'Premium cotton t-shirt',
-      basePrice: 199000,
-      categoryId: 1,
-      variants: {
-        create: [
-          { sku: 'TS-BLK-M-001', color: 'Black', size: 'M' },
-          { sku: 'TS-BLK-L-001', color: 'Black', size: 'L' },
-          { sku: 'TS-WHT-M-001', color: 'White', size: 'M' },
-        ]
-      }
-    },
-    include: { variants: true }
-  });
-
-  for (const variant of product.variants) {
-    await prisma.warehouseStock.create({
-      data: { 
-        warehouseId: 1, 
-        variantId: variant.id, 
-        quantity: 100 
+  if (!existingProduct) {
+    await prisma.product.create({
+      data: {
+        name: 'Basic Cotton T-Shirt',
+        description: 'Premium cotton t-shirt',
+        basePrice: 199000,
+        categoryId: category.id,
+        imageUrl: '/uploads/products/default-tshirt.png',
+        variants: {
+          create: [
+            { sku: 'TS-BLK-M-001', color: 'Black', size: 'M', stock: 100 },
+            { sku: 'TS-BLK-L-001', color: 'Black', size: 'L', stock: 100 },
+            { sku: 'TS-WHT-M-001', color: 'White', size: 'M', stock: 100 },
+          ]
+        }
       }
     });
+    console.log('👕 Seeded Product: Basic Cotton T-Shirt with direct variant stocks');
+  } else {
+    console.log('👕 Product Basic Cotton T-Shirt already exists, skipping...');
   }
 
   console.log('✅ Seed completed successfully');
@@ -74,7 +72,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

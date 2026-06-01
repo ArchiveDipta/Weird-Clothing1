@@ -10,25 +10,7 @@ export class OrdersService {
   // ======================== CHECKOUT ========================
   async checkout(userId: number, dto: CheckoutDto) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Validasi stok tersedia
-      for (const item of dto.items) {
-        const stock = await tx.warehouseStock.findUnique({
-          where: {
-            warehouseId_variantId: {
-              warehouseId: item.warehouseId,
-              variantId: item.variantId,
-            },
-          },
-        });
-
-        if (!stock || stock.quantity < item.quantity) {
-          throw new BadRequestException(
-            `Insufficient stock for variant ${item.variantId} at warehouse ${item.warehouseId}. Available: ${stock?.quantity ?? 0}`
-          );
-        }
-      }
-
-      // 2. Hitung total harga
+      // 1. Validasi stok tersedia & Hitung total harga
       let totalAmount = new Prisma.Decimal(0);
       const orderItemsData = [];
 
@@ -40,19 +22,24 @@ export class OrdersService {
 
         if (!variant) throw new NotFoundException(`Variant ${item.variantId} not found`);
 
+        if (variant.stock < item.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for variant ${item.variantId}. Available: ${variant.stock}`
+          );
+        }
+
         const unitPrice = variant.product.basePrice;
         const itemTotal = unitPrice.mul(item.quantity);
         totalAmount = totalAmount.add(itemTotal);
 
         orderItemsData.push({
           variantId: item.variantId,
-          warehouseId: item.warehouseId,
           quantity: item.quantity,
           unitPrice,
         });
       }
 
-      // 3. Validasi & Hitung Voucher
+      // 2. Validasi & Hitung Voucher
       let discountAmount = new Prisma.Decimal(0);
       let voucherId: number | null = null;
 
@@ -93,7 +80,7 @@ export class OrdersService {
       const finalAmount = totalAmount.sub(discountAmount);
       if (finalAmount.lessThan(0)) discountAmount = totalAmount;
 
-      // 4. Buat Order
+      // 3. Buat Order
       const order = await tx.order.create({
         data: {
           userId,
@@ -109,13 +96,12 @@ export class OrdersService {
           items: {
             include: {
               variant: { include: { product: true } },
-              warehouse: true,
             },
           },
         },
       });
 
-      // 5. Update voucher usage
+      // 4. Update voucher usage
       if (voucherId) {
         await tx.voucher.update({
           where: { id: voucherId },
@@ -144,27 +130,17 @@ export class OrdersService {
 
       // Decrement stock
       for (const item of order.items) {
-        const stock = await tx.warehouseStock.findUnique({
-          where: {
-            warehouseId_variantId: {
-              warehouseId: item.warehouseId,
-              variantId: item.variantId,
-            },
-          },
+        const variant = await tx.productVariant.findUnique({
+          where: { id: item.variantId },
         });
 
-        if (!stock || stock.quantity < item.quantity) {
+        if (!variant || variant.stock < item.quantity) {
           throw new BadRequestException(`Payment failed: Stock for variant ${item.variantId} is no longer available`);
         }
 
-        await tx.warehouseStock.update({
-          where: {
-            warehouseId_variantId: {
-              warehouseId: item.warehouseId,
-              variantId: item.variantId,
-            },
-          },
-          data: { quantity: { decrement: item.quantity } },
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } },
         });
       }
 
@@ -199,15 +175,10 @@ export class OrdersService {
 
       // Jika PAID, kembalikan stok
       if (order.status === OrderStatus.PAID) {
-        for (const item of order.items) {
-          await tx.warehouseStock.update({
-            where: {
-              warehouseId_variantId: {
-                warehouseId: item.warehouseId,
-                variantId: item.variantId,
-              },
-            },
-            data: { quantity: { increment: item.quantity } },
+         for (const item of order.items) {
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: { stock: { increment: item.quantity } },
           });
         }
       }
@@ -244,7 +215,6 @@ export class OrdersService {
         items: {
           include: {
             variant: { include: { product: true } },
-            warehouse: true,
           },
         },
         user: { select: { id: true, fullName: true, email: true } },
@@ -261,7 +231,6 @@ export class OrdersService {
         items: {
           include: {
             variant: { include: { product: true } },
-            warehouse: true,
           },
         },
         user: { select: { id: true, fullName: true, email: true } },

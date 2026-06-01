@@ -8,9 +8,6 @@ class CartItemInput {
   @IsInt()
   @IsPositive()
   quantity: number;
-
-  @IsInt()
-  warehouseId: number;
 }
 
 export class CheckoutDto {

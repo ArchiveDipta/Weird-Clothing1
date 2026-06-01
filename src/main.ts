@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -26,6 +27,16 @@ async function bootstrap() {
 
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.setGlobalPrefix('api');
+
+  // Setup Swagger
+  const config = new DocumentBuilder()
+    .setTitle('Weird Fashion API')
+    .setDescription('E-Commerce Backend API for Weird Fashion')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   // Serve static files (uploaded images)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {

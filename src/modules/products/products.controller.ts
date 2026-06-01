@@ -49,7 +49,7 @@ export class ProductsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: productImageStorage,
@@ -61,13 +61,13 @@ export class ProductsController {
     @Body() dto: CreateProductDto,
     @UploadedFile() image: Express.Multer.File,
   ) {
-    const imageUrl = image ? `/uploads/products/${image.filename}` : null;
+    const imageUrl = image ? `/uploads/products/${image.filename}` : (dto.imageUrl || null);
     return this.productsService.create(dto, imageUrl);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @UseInterceptors(
     FileInterceptor('image', {
       storage: productImageStorage,
@@ -80,13 +80,13 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @UploadedFile() image: Express.Multer.File,
   ) {
-    const imageUrl = image ? `/uploads/products/${image.filename}` : undefined;
+    const imageUrl = image ? `/uploads/products/${image.filename}` : dto.imageUrl;
     return this.productsService.update(id, dto, imageUrl);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);
   }
@@ -95,7 +95,7 @@ export class ProductsController {
 
   @Post(':id/images')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @UseInterceptors(
     FilesInterceptor('images', 10, { // Max 10 files
       storage: productImageStorage,
@@ -118,7 +118,7 @@ export class ProductsController {
 
   @Patch(':id/images/:imageId/primary')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   setPrimaryImage(
     @Param('id', ParseIntPipe) productId: number,
     @Param('imageId', ParseIntPipe) imageId: number,
@@ -128,7 +128,7 @@ export class ProductsController {
 
   @Delete('images/:imageId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   deleteImage(@Param('imageId', ParseIntPipe) imageId: number) {
     return this.productImagesService.deleteImage(imageId);
   }
