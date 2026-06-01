@@ -12,25 +12,25 @@ export class VouchersController {
   constructor(private readonly vouchersService: VouchersService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   create(@Body() dto: CreateVoucherDto) {
     return this.vouchersService.create(dto);
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   findAll() {
     return this.vouchersService.findAll();
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.vouchersService.findOne(id);
   }
 
   @Patch(':id/toggle')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   toggleActive(@Param('id', ParseIntPipe) id: number) {
     return this.vouchersService.toggleActive(id);
   }

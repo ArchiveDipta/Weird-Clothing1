@@ -34,14 +34,14 @@ export class OrdersController {
 
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   cancelOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.cancelOrder(id);
   }
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   findAll() {
     return this.ordersService.findAll();
   }

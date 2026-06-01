@@ -1,71 +1,70 @@
 const { PrismaClient, Role } = require('@prisma/client');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('superadmin123', 10);
+  console.log('🌱 Starting database seeding...');
+
+  // 1. Create ADMIN user safely
+  const existingAdmin = await prisma.user.findFirst({
+    where: { email: 'admin@store.com' }
+  });
   
-  await prisma.user.upsert({
-    where: { email: 'super@admin.com' },
-    update: {},
-    create: {
-      email: 'super@admin.com',
-      password: hashedPassword,
-      fullName: 'Super Administrator',
-      role: Role.SUPER_ADMIN,
-    },
-  });
-
-  const adminPass = await bcrypt.hash('admin123', 10);
-  await prisma.user.upsert({
-    where: { email: 'admin@store.com' },
-    update: {},
-    create: {
-      email: 'admin@store.com',
-      password: adminPass,
-      fullName: 'Store Admin',
-      role: Role.ADMIN,
-    },
-  });
-
-  await prisma.warehouse.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'Main Warehouse', location: 'Jakarta' },
-  });
-
-  const category = await prisma.category.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'T-Shirt' },
-  });
-
-  const product = await prisma.product.create({
-    data: {
-      name: 'Basic Cotton T-Shirt',
-      description: 'Premium cotton t-shirt',
-      basePrice: 199000,
-      categoryId: category.id,
-      variants: {
-        create: [
-          { sku: 'TS-BLK-M-001', color: 'Black', size: 'M' },
-          { sku: 'TS-BLK-L-001', color: 'Black', size: 'L' },
-          { sku: 'TS-WHT-M-001', color: 'White', size: 'M' },
-        ],
-      },
-    },
-    include: { variants: true },
-  });
-
-  for (const variant of product.variants) {
-    await prisma.warehouseStock.create({
-      data: {
-        warehouseId: 1,
-        variantId: variant.id,
-        quantity: 100,
-      },
+  if (!existingAdmin) {
+    const hashedAdmin = await bcrypt.hash('admin123', 10);
+    await prisma.user.create({
+      data: { 
+        email: 'admin@store.com', 
+        password: hashedAdmin, 
+        fullName: 'Store Admin', 
+        role: Role.ADMIN 
+      }
     });
+    console.log('👤 Seeded Store Admin user');
+  } else {
+    console.log('👤 Store Admin user already exists, skipping...');
+  }
+
+  // 2. Create Category safely
+  let category = await prisma.category.findUnique({
+    where: { name: 'T-Shirt' }
+  });
+
+  if (!category) {
+    category = await prisma.category.create({
+      data: { name: 'T-Shirt' }
+    });
+    console.log('📦 Seeded Category: T-Shirt');
+  } else {
+    console.log('📦 Category T-Shirt already exists, skipping...');
+  }
+
+  // 3. Create Product with direct Variant stocks safely
+  const existingProduct = await prisma.product.findFirst({
+    where: { name: 'Basic Cotton T-Shirt', categoryId: category.id }
+  });
+
+  if (!existingProduct) {
+    await prisma.product.create({
+      data: {
+        name: 'Basic Cotton T-Shirt',
+        description: 'Premium cotton t-shirt',
+        basePrice: 199000,
+        categoryId: category.id,
+        imageUrl: '/uploads/products/default-tshirt.png',
+        variants: {
+          create: [
+            { sku: 'TS-BLK-M-001', color: 'Black', size: 'M', stock: 100 },
+            { sku: 'TS-BLK-L-001', color: 'Black', size: 'L', stock: 100 },
+            { sku: 'TS-WHT-M-001', color: 'White', size: 'M', stock: 100 },
+          ]
+        }
+      }
+    });
+    console.log('👕 Seeded Product: Basic Cotton T-Shirt with direct variant stocks');
+  } else {
+    console.log('👕 Product Basic Cotton T-Shirt already exists, skipping...');
   }
 
   console.log('✅ Seed completed successfully');
@@ -73,7 +72,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

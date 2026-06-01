@@ -45,3 +45,6 @@ lerna-debug.log*
 # temp
 *.tmp
 *.temp
+
+# TypeScript build cache
+*.tsbuildinfo
